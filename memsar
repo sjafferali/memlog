@@ -1,0 +1,45 @@
+#!/bin/bash
+
+LOG_DIR="/Users/samir/github/memlog/logs"
+CURRENT_LOG=$LOG_DIR/$(date +%d)
+CRON=0
+VIEW=1
+
+while getopts ":f:c" opt; do
+	case $opt in
+		f)
+			CURRENT_LOG=$OPTARG
+      			;;
+		c)
+			CRON=1
+			VIEW=0
+			;;
+    		\?)
+      			echo "Invalid option: -$OPTARG" >&2
+      			exit 1
+      			;;
+    		:)
+      			echo "Option -$OPTARG requires an argument." >&2
+      			exit 1
+      			;;
+	esac
+done
+
+
+if [[ $CRON == 1 ]]
+then
+	FREE="/Users/samir/bin/free"
+	TOTAL_MEM=$(($(hostinfo | grep memory | awk '{print$4}' | awk -F. '{print$1}')*1024))
+	FREE_LINE=$($FREE -c)
+	AVAIL_MEM=$(($(echo $FREE_LINE | awk '{print$3}')+$(echo $FREE_LINE | awk '{print$4}')))
+	USED_MEM=$(($TOTAL_MEM-$AVAIL_MEM))
+	echo $(date +"%D %T")" "$($FREE -c)" "$(($USED_MEM*100/$TOTAL_MEM)) >> $CURRENT_LOG
+fi
+if [[ $VIEW == 1 ]]
+then
+        printf "%-10s %-10s %-10s %-10s %-10s %-10s %-10s %-10s\n" DATE TIME WIRED ACTIVE INACTIVE FREE REAL "USED %"
+	cat $CURRENT_LOG | while read line
+	do
+		printf "%-10s %-10s %-10s %-10s %-10s %-10s %-10s %-10s\n" $(echo $line | awk '{print$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8}')
+	done
+fi
